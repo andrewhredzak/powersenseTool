@@ -1,4 +1,6 @@
 # Power Measurement GUI
+test text wwwwww
+test text again the will be the first push
 
 This is a simple Python program that uses PyVISA and Tkinter to take power measurements from a Keysight U2022XA power sensor.
 
@@ -29,4 +31,4 @@ https://www.keysight.com/us/en/product/U2022XA/usb-peak-and-average-power-sensor
 
 ## Author
 
-Andrew Hredzak - November 2024
+Andrew Hredzak - November 2024"# powersenseTool" 
