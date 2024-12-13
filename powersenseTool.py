@@ -33,13 +33,16 @@ def take_measurement():
         power_sensor.write(':INITiate:IMMediate')
 
         # Fetch the measured power value
+        # pg 72/633 on programming guide 
         power_value = float(power_sensor.query(':FETCH:SCALar:POWer?'))
 
         # Update the result label
         result_label.config(text=f"Measured Power: {power_value:.3f} dBm")
+        print('after Update the result label: ', {power_sensor.query(" SYST:ERR?")})
 
     except Exception as e:
         result_label.config(text=f"An error occurred: {e}")
+        print("in measure exception")
 
     finally:
         # Close the connection to the power sensor
@@ -76,6 +79,41 @@ def clear_error_queue():
 
         # Close the VISA resource manager
         rm.close()
+
+def calibrate_and_zero():
+    try: 
+        #create a VISA resource manager
+        rm = pyvisa.ResourceManager()
+
+        #open a connection to the power sensor
+        with rm.open_resource(visa_resource_string) as power_sensor:
+            power_sensor.write(" *RST")        # resets instrument
+            power_sensor.write(" CAL:ZERO:AUTO ONCE")  # Zeroing the U2022 X
+            power_sensor.write(" CAL:AUTO ONCE")       # calibrating the U2022 X
+            stat_byte = power_sensor.query(" *STB?")
+            #print("checking cal:", power_sensor.query(" *STB?"))
+            #print("type: ", type(power_sensor.query(" *STB?")))
+
+        
+        assert stat_byte.strip() == "+0", f"status byte: {stat_byte}"
+        # Update the result label
+        result_label.config(text="Calibration and zero successful.")
+
+    except Exception as e: 
+        result_label.config(text=f"Error during calibration and zeroing: {e}")
+
+    finally:
+        # Close the connection to the power sensor
+        if 'power_sensor' in locals() and power_sensor:
+            power_sensor.close()
+
+        # Close the VISA resource manager
+        rm.close() 
+
+    
+
+
+
 
 # --- Functions to set parameters ---
 def set_visa_resource():
@@ -117,6 +155,7 @@ frequency_entry = ttk.Entry(window)
 frequency_entry.grid(row=1, column=1, padx=5, pady=5)
 frequency_entry.insert(0, "1GHz")
 
+"""
 # Averaging factor selection
 averaging_label = ttk.Label(window, text="Averaging Count:")
 averaging_label.grid(row=2, column=0, padx=5, pady=5)
@@ -126,12 +165,14 @@ averaging_options = ["","1", "10", "100", "1000"]
 averaging_menu = ttk.OptionMenu(window, averaging_var, *averaging_options)
 averaging_menu.grid(row=2, column=1, padx=5, pady=5)
 
+"""
+
 # Measurement mode selection
 measurement_mode_label = ttk.Label(window, text="Measurement Mode:")
 measurement_mode_label.grid(row=3, column=0, padx=5, pady=5)
 
-measurement_mode_var = tk.StringVar(value="AVERage")
-measurement_mode_options = ["","AVERage", "PEAK", "SAMPle"]
+measurement_mode_var = tk.StringVar(value="PEAK")
+measurement_mode_options = ["","PEAK","AVERage", "SAMPle"]
 measurement_mode_menu = ttk.OptionMenu(window, measurement_mode_var, *measurement_mode_options)
 measurement_mode_menu.grid(row=3, column=1, padx=5, pady=5)
 
@@ -141,30 +182,37 @@ visa_set_button.grid(row=0, column=2, padx=5, pady=5)
 
 frequency_set_button = ttk.Button(window, text="Set Frequency", command=set_frequency)
 frequency_set_button.grid(row=1, column=2, padx=5, pady=5)
-
+"""
 averaging_set_button = ttk.Button(window, text="Set Averaging", command=set_averaging_count)
 averaging_set_button.grid(row=2, column=2, padx=5, pady=5)
+"""
+
 
 mode_set_button = ttk.Button(window, text="Set Mode", command=set_measurement_mode)
 mode_set_button.grid(row=3, column=2, padx=5, pady=5)
 
-# Take Measurement button
-measure_button = ttk.Button(window, text="Take Measurement", command=take_measurement)
-measure_button.grid(row=4, column=0, columnspan=3, padx=5, pady=10)
+# calibration and zero button
+calibrate_zero_button = ttk.Button(window, text="Calibrate and Zero",command=calibrate_and_zero)
+calibrate_zero_button.grid(row=4, column=0, columnspan=3, padx=5, pady=5)
+
 
 # Clear Error Queue button
 clear_button = ttk.Button(window, text="Clear Error Queue", command=clear_error_queue)
 clear_button.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
 
+# Take Measurement button
+measure_button = ttk.Button(window, text="Take Measurement", command=take_measurement)
+measure_button.grid(row=6, column=0, columnspan=3, padx=5, pady=10)
+
 # Result label
 result_label = ttk.Label(window, text="")
-result_label.grid(row=6, column=0, columnspan=3, padx=5, pady=5)
+result_label.grid(row=7, column=0, columnspan=3, padx=5, pady=5)
 
 # --- Initialize parameters ---
 visa_resource_string = ""
 frequency = "1GHz"
 averaging_count = 10
-measurement_mode = "AVERage"
+measurement_mode = "POW:PEAK"
 
 # Start the GUI event loop
 window.mainloop()
